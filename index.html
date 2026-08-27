@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Two-Card Chess">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#070A08">
+<title>Two-Card Chess — 5×5 Practice</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #1B2230;
+    --felt: #242D40;
+    --felt-dark: #1A2130;
+    --felt-line: rgba(255,212,71,0.10);
+    --light-sq: #4A5470;
+    --dark-sq: #313A54;
+    --board-border: #12161F;
+    --brass: #FFD447;
+    --brass-bright: #FFE18A;
+    --ink: #20242F;
+    --cream: #E7E9F0;
+    --cream-dim: #9AA0B4;
+    --go: #3ADC6B;
+    --stop: #FF4D5E;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body{ height:100%; overscroll-behavior:none; }
+
+  body{
+    margin:0;
+    font-family:'Inter', sans-serif;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(201,162,39,0.06), transparent 55%),
+      var(--bg);
+    color: var(--cream);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding: calc(24px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .wrap{ width:100%; max-width:440px; }
+
+  header{ text-align:center; margin-bottom:6px; }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: 27px;
+    letter-spacing: 0.01em;
+    margin: 0 0 2px;
+    color: var(--cream);
+  }
+  .subtitle{
+    font-size: 12px;
+    color: var(--cream-dim);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .statbar{
+    display:flex;
+    justify-content:center;
+    gap: 22px;
+    margin: 16px 0 18px;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .stat{ text-align:center; }
+  .stat .n{ font-size:18px; font-weight:600; color: var(--brass-bright); display:block; line-height:1.1;}
+  .stat .l{ font-size:9px; color: var(--cream-dim); text-transform:uppercase; letter-spacing:0.08em; }
+
+  .table{
+    background: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.4)), var(--felt);
+    border-radius: 14px;
+    padding: 18px 18px 16px;
+    box-shadow: 0 0 0 1px var(--felt-line), inset 0 1px 22px rgba(0,0,0,0.5), 0 20px 44px rgba(0,0,0,0.55);
+  }
+
+  .board-area{ display:flex; align-items:center; justify-content:center; }
+  .board{
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 1;
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    border: 2px solid var(--board-border);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.55);
+  }
+  .cell{
+    position: relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cell.light{ background: var(--light-sq); }
+  .cell.dark{ background: var(--dark-sq); }
+
+  .cell.legal{ cursor: pointer; }
+  .cell.legal::before{
+    content:'';
+    position:absolute;
+    inset: 4px;
+    border-radius: 2px;
+    background: rgba(255,212,71,0.10);
+    box-shadow: inset 0 0 0 3px var(--brass);
+  }
+  .cell.is-target::after{
+    content:'';
+    position:absolute;
+    inset: 4px;
+    border-radius: 2px;
+    background: rgba(255,77,94,0.38);
+    box-shadow: 0 0 16px 4px rgba(255,77,94,0.75), inset 0 0 10px rgba(255,77,94,0.6);
+    animation: targetGlow 1.4s ease-in-out infinite;
+  }
+  @keyframes targetGlow{
+    0%, 100% { opacity: 0.75; }
+    50% { opacity: 1; }
+  }
+
+  .cell.flash-success::before, .cell.flash-fail::before{
+    content:'';
+    position:absolute;
+    inset: 3px;
+    border-radius: 3px;
+    z-index: 4;
+    animation: pulse 0.12s ease-in-out 1;
+  }
+  .cell.flash-success::before{ background: rgba(52,226,122,0.4); box-shadow: 0 0 22px rgba(52,226,122,0.85); }
+  .cell.flash-fail::before{ background: rgba(255,77,77,0.4); box-shadow: 0 0 22px rgba(255,77,77,0.85); }
+  @keyframes pulse{ 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
+
+  .token{
+    width:106%; height:106%;
+    z-index: 3;
+    display:flex; align-items:center; justify-content:center;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.6));
+  }
+  .token svg{ width:100%; height:100%; }
+
+  /* Cards */
+  .cards-row{
+    display:flex;
+    justify-content:center;
+    gap: 20px;
+    margin: 24px 0 4px;
+  }
+  .card{
+    width: 88px;
+    height: 122px;
+    background: linear-gradient(160deg, #241F17, #14110C);
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 10px 18px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,162,39,0.22);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .card:hover:not(.used):not(.disabled){ transform: translateY(-4px); }
+  .card.selected{
+    outline: 2px solid var(--go);
+    outline-offset: 2px;
+    box-shadow: 0 0 14px rgba(52,226,122,0.4);
+  }
+  .card.used{ opacity: 0.22; cursor: default; }
+  .card.disabled{ cursor: default; }
+  .card .pip{
+    position:absolute;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight:600;
+    color: var(--brass-bright);
+    line-height:1;
+    opacity: 0.85;
+  }
+  .card .pip.tl{ top:7px; left:8px; }
+  .card .pip.br{ bottom:7px; right:8px; transform: rotate(180deg); }
+  .card .glyph{
+    font-size: 42px;
+    color: var(--brass-bright);
+    text-align:center;
+    margin-top: 14px;
+  }
+  .card .name{
+    text-align:center;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--cream-dim);
+    margin-top: 2px;
+  }
+
+  .message{
+    text-align:center;
+    min-height: 20px;
+    font-size: 14px;
+    margin: 16px 4px 2px;
+    color: var(--cream);
+  }
+  .message.solved{ color: var(--go); font-weight:600; }
+  .message.failed{ color: var(--stop); font-weight:600; }
+
+  .legend{
+    margin-top: 20px;
+    font-size: 11px;
+    color: var(--cream-dim);
+    text-align:center;
+    line-height:1.6;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .legend b{ color: var(--brass-bright); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Two-Card Chess</h1>
+    <div class="subtitle">5 × 5 · reach the flag</div>
+  </header>
+
+  <div class="statbar">
+    <div class="stat"><span class="n" id="statSolved">0</span><span class="l">Solved</span></div>
+    <div class="stat"><span class="n" id="statStreak">0</span><span class="l">Streak</span></div>
+    <div class="stat"><span class="n" id="statBest">0</span><span class="l">Best</span></div>
+  </div>
+
+  <div class="table">
+    <div class="board-area">
+      <div class="board" id="board"></div>
+    </div>
+
+    <div class="cards-row" id="cardsRow"></div>
+
+    <div class="message" id="message"></div>
+  </div>
+
+  <div class="legend">
+    <b>♔</b> King · <b>♖</b> Rook · <b>♗</b> Bishop · <b>♘</b> Knight · <b>♙</b> Pawn (always moves up)<br>
+    Play both drawn cards, in any order, to land exactly on the flag.
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- movement rules ----------
+  function inBounds(r,c){ return r>=0 && r<=4 && c>=0 && c<=4; }
+  function allSquares(){ const s=[]; for(let r=0;r<5;r++) for(let c=0;c<5;c++) s.push({row:r,col:c}); return s; }
+  function sameSquare(a,b){ return a.row===b.row && a.col===b.col; }
+  function shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+
+  function kingMoves(pos){
+    const out=[];
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+      if(dr===0&&dc===0) continue;
+      const r=pos.row+dr,c=pos.col+dc;
+      if(inBounds(r,c)) out.push({row:r,col:c});
+    }
+    return out;
+  }
+  function rookMoves(pos){
+    const out=[]; const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+    for(const [dr,dc] of dirs){
+      let r=pos.row+dr,c=pos.col+dc;
+      while(inBounds(r,c)){ out.push({row:r,col:c}); r+=dr; c+=dc; }
+    }
+    return out;
+  }
+  function bishopMoves(pos){
+    const out=[]; const dirs=[[1,1],[1,-1],[-1,1],[-1,-1]];
+    for(const [dr,dc] of dirs){
+      let r=pos.row+dr,c=pos.col+dc;
+      while(inBounds(r,c)){ out.push({row:r,col:c}); r+=dr; c+=dc; }
+    }
+    return out;
+  }
+  function knightMoves(pos){
+    const out=[]; const offsets=[[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]];
+    for(const [dr,dc] of offsets){
+      const r=pos.row+dr,c=pos.col+dc;
+      if(inBounds(r,c)) out.push({row:r,col:c});
+    }
+    return out;
+  }
+  function pawnMoves(pos){
+    const r=pos.row-1, c=pos.col;
+    return inBounds(r,c) ? [{row:r,col:c}] : [];
+  }
+  function getMoves(type,pos){
+    switch(type){
+      case 'K': return kingMoves(pos);
+      case 'R': return rookMoves(pos);
+      case 'B': return bishopMoves(pos);
+      case 'N': return knightMoves(pos);
+      case 'P': return pawnMoves(pos);
+    }
+  }
+  const NAME = {K:'King', R:'Rook', B:'Bishop', N:'Knight', P:'Pawn'};
+  const GLYPH = {K:'♔', R:'♖', B:'♗', N:'♘', P:'♙'};
+
+  function solve(start,target,cardA,cardB){
+    const orders = [[cardA,cardB],[cardB,cardA]];
+    for(const order of orders){
+      for(const mid of getMoves(order[0],start)){
+        if(getMoves(order[1],mid).some(m=>sameSquare(m,target))){
+          return {order, mid};
+        }
+      }
+    }
+    return null;
+  }
+
+  function fullDeck(){ return ['K','R','R','B','B','N','N','P','P','P','P','P']; }
+
+  function generatePuzzle(deck,discard){
+    let workingDeck=[...deck], workingDiscard=[...discard];
+    let attempts=0, result=null;
+    while(attempts<40 && !result){
+      if(workingDeck.length<2){
+        workingDeck = shuffle([...workingDeck,...workingDiscard]);
+        workingDiscard=[];
+      }
+      const cardA=workingDeck[0], cardB=workingDeck[1];
+      const remaining=workingDeck.slice(2);
+      const newDiscard=[...workingDiscard,cardA,cardB];
+      const squares=shuffle(allSquares());
+      let found=null;
+      for(const t of squares){
+        const starts = allSquares().filter(s=>
+          !sameSquare(s,t) &&
+          solve(s,t,cardA,cardB)!==null &&
+          !getMoves(cardA,s).some(m=>sameSquare(m,t)) &&
+          !getMoves(cardB,s).some(m=>sameSquare(m,t))
+        );
+        if(starts.length>0){ found={target:t,starts}; break; }
+      }
+      if(found){
+        const start = found.starts[Math.floor(Math.random()*found.starts.length)];
+        result = {cardA,cardB,target:found.target,start,deck:remaining,discard:newDiscard};
+      } else {
+        workingDeck=remaining; workingDiscard=newDiscard; attempts++;
+      }
+    }
+    return result;
+  }
+
+  // ---------- mascot icon (stylized dark lamb) ----------
+  const LAMB_SVG = `
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="woolGrad" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#4a4438"/>
+          <stop offset="100%" stop-color="#1c1912"/>
+        </radialGradient>
+      </defs>
+      <!-- wool tufts -->
+      <circle cx="28" cy="38" r="12" fill="url(#woolGrad)"/>
+      <circle cx="72" cy="38" r="12" fill="url(#woolGrad)"/>
+      <circle cx="50" cy="28" r="14" fill="url(#woolGrad)"/>
+      <!-- horns -->
+      <path d="M32 34 C20 30, 16 18, 22 8 C24 20, 28 28, 36 32 Z" fill="#8a7a52"/>
+      <path d="M68 34 C80 30, 84 18, 78 8 C76 20, 72 28, 64 32 Z" fill="#8a7a52"/>
+      <!-- head -->
+      <ellipse cx="50" cy="50" rx="26" ry="24" fill="url(#woolGrad)"/>
+      <!-- face plate -->
+      <ellipse cx="50" cy="56" rx="15" ry="13" fill="#0f0d09"/>
+      <!-- eyes -->
+      <circle cx="43" cy="53" r="3.4" fill="#FF4D4D"/>
+      <circle cx="57" cy="53" r="3.4" fill="#FF4D4D"/>
+      <circle cx="43" cy="53" r="1.2" fill="#ffe1e1"/>
+      <circle cx="57" cy="53" r="1.2" fill="#ffe1e1"/>
+      <!-- pentagram mark -->
+      <path d="M50 60 L52 65.5 L58 65.7 L53.2 69.2 L55 75 L50 71.4 L45 75 L46.8 69.2 L42 65.7 L48 65.5 Z"
+            fill="none" stroke="#C9A227" stroke-width="1"/>
+    </svg>`;
+
+  // ---------- state ----------
+  let state = {
+    deck: shuffle(fullDeck()),
+    discard: [],
+    target: null, start: null, token: null,
+    cardA: null, cardB: null, usedA: false, usedB: false,
+    selected: null,
+    phase: 'playing', // playing | resolved (auto-advancing)
+    stats: { solved:0, streak:0, best:0 }
+  };
+
+  const STORE_KEY = 'stats';
+
+  async function loadStats(){
+    try{
+      const res = await window.storage.get(STORE_KEY, false);
+      if(res && res.value){
+        const parsed = JSON.parse(res.value);
+        state.stats = Object.assign(state.stats, parsed);
+      }
+    }catch(e){ /* no saved stats yet, or storage unavailable — start fresh */ }
+    renderStats();
+  }
+  async function saveStats(){
+    try{ await window.storage.set(STORE_KEY, JSON.stringify(state.stats), false); }
+    catch(e){ /* best effort */ }
+  }
+
+  function newPuzzle(){
+    const p = generatePuzzle(state.deck, state.discard);
+    state.deck = p.deck; state.discard = p.discard;
+    state.target = p.target; state.start = p.start; state.token = p.start;
+    state.cardA = p.cardA; state.cardB = p.cardB;
+    state.usedA = false; state.usedB = false;
+    state.selected = null;
+    state.phase = 'playing';
+    setMessage('Choose a card, then tap a lit square to move.', '');
+    render();
+  }
+
+  function setMessage(text, kind){
+    const el = document.getElementById('message');
+    el.textContent = text;
+    el.className = 'message' + (kind ? ' '+kind : '');
+  }
+
+  function currentSelectedType(){
+    if(state.selected==='A') return state.cardA;
+    if(state.selected==='B') return state.cardB;
+    return null;
+  }
+
+  function selectCard(which){
+    if(state.phase!=='playing') return;
+    if(which==='A' && state.usedA) return;
+    if(which==='B' && state.usedB) return;
+    state.selected = state.selected===which ? null : which;
+    render();
+  }
+
+  function playMove(row,col){
+    if(state.phase!=='playing' || !state.selected) return;
+    const type = currentSelectedType();
+    const legal = getMoves(type, state.token);
+    if(!legal.some(m=>m.row===row && m.col===col)) return;
+
+    state.token = {row,col};
+    if(state.selected==='A') state.usedA = true; else state.usedB = true;
+    state.selected = null;
+
+    if(state.usedA && state.usedB){
+      const success = sameSquare(state.token, state.target);
+      state.phase = 'resolved';
+      if(success){
+        state.stats.solved += 1;
+        state.stats.streak += 1;
+        state.stats.best = Math.max(state.stats.best, state.stats.streak);
+        setMessage('Solved!', 'solved');
+      } else {
+        state.stats.streak = 0;
+        setMessage('Missed the flag.', 'failed');
+      }
+      saveStats();
+      render(success ? 'success' : 'fail');
+      setTimeout(newPuzzle, 120);
+    } else {
+      setMessage('Played ' + NAME[type] + '. Now play your other card.', '');
+      render();
+    }
+  }
+
+  // ---------- render ----------
+  function renderStats(){
+    document.getElementById('statSolved').textContent = state.stats.solved;
+    document.getElementById('statStreak').textContent = state.stats.streak;
+    document.getElementById('statBest').textContent = state.stats.best;
+  }
+
+  function renderBoard(flashKind){
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+
+    const legalMoves = (state.phase==='playing' && state.selected)
+      ? getMoves(currentSelectedType(), state.token)
+      : [];
+
+    for(let r=0;r<5;r++){
+      for(let c=0;c<5;c++){
+        const cell = document.createElement('div');
+        const isLight = (r+c)%2===0;
+        cell.className = 'cell ' + (isLight?'light':'dark');
+
+        const isTarget = state.target && state.target.row===r && state.target.col===c;
+        const isToken = state.token && state.token.row===r && state.token.col===c;
+        const isLegal = legalMoves.some(m=>m.row===r && m.col===c);
+
+        if(isLegal){
+          cell.className += ' legal';
+          cell.addEventListener('click', ()=>playMove(r,c));
+        }
+        if(isTarget && state.phase==='playing'){
+          cell.className += ' is-target';
+        }
+        if(isToken && flashKind){
+          cell.className += flashKind==='success' ? ' flash-success' : ' flash-fail';
+        }
+        if(isToken){
+          const tok = document.createElement('div');
+          tok.className = 'token';
+          tok.innerHTML = LAMB_SVG;
+          cell.appendChild(tok);
+        }
+
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  function renderCards(){
+    const row = document.getElementById('cardsRow');
+    row.innerHTML = '';
+    [['A', state.cardA, state.usedA], ['B', state.cardB, state.usedB]].forEach(([key, type, used])=>{
+      const card = document.createElement('div');
+      card.className = 'card' + (used ? ' used' : '') + (state.selected===key ? ' selected' : '') + (state.phase!=='playing' ? ' disabled' : '');
+      card.innerHTML =
+        '<div class="pip tl">'+GLYPH[type]+'</div>' +
+        '<div class="pip br">'+GLYPH[type]+'</div>' +
+        '<div class="glyph">'+GLYPH[type]+'</div>' +
+        '<div class="name">'+NAME[type]+'</div>';
+      if(!used && state.phase==='playing'){
+        card.addEventListener('click', ()=>selectCard(key));
+      }
+      row.appendChild(card);
+    });
+  }
+
+  function render(flashKind){
+    renderBoard(flashKind);
+    renderCards();
+    renderStats();
+  }
+
+  loadStats().then(()=>{
+    newPuzzle();
+  });
+})();
+</script>
+</body>
+</html>
