@@ -48,8 +48,9 @@
   }
 
   .wrap{ width:100%; max-width:440px; }
+  .hidden{ display:none !important; }
 
-  header{ text-align:center; margin-bottom:6px; }
+  header{ text-align:center; margin-bottom:6px; position:relative; }
   h1{
     font-family:'Fraunces', serif;
     font-weight:600;
@@ -65,6 +66,71 @@
     text-transform: uppercase;
     font-family: 'JetBrains Mono', monospace;
   }
+  .menu-link{
+    position:absolute;
+    top: 2px;
+    left: 0;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--cream-dim);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .menu-link:hover{ color: var(--brass-bright); }
+
+  /* ---- Menu screen ---- */
+  .menu-screen{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-top: 8vh;
+  }
+  .menu-title{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size: 34px;
+    margin: 0 0 6px;
+    text-align:center;
+  }
+  .menu-subtitle{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--cream-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 44px;
+    text-align:center;
+  }
+  .mode-btn{
+    width: 100%;
+    max-width: 320px;
+    background: linear-gradient(160deg, #241F17, #14110C);
+    border: 1px solid rgba(201,162,39,0.28);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    cursor: pointer;
+    text-align:left;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+  }
+  .mode-btn:hover{ transform: translateY(-3px); border-color: var(--brass); box-shadow: 0 14px 26px rgba(0,0,0,0.5); }
+  .mode-btn .mtitle{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: 20px;
+    color: var(--brass-bright);
+    margin-bottom: 4px;
+  }
+  .mode-btn .mdesc{
+    font-family:'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--cream-dim);
+    line-height: 1.4;
+  }
+  .mode-btn.hard .mtitle{ color: var(--stop); }
 
   .statbar{
     display:flex;
@@ -122,6 +188,14 @@
     box-shadow: 0 0 16px 4px rgba(255,77,94,0.75), inset 0 0 10px rgba(255,77,94,0.6);
     animation: targetGlow 1.4s ease-in-out infinite;
   }
+  .cell.is-target-hit::after{
+    content:'';
+    position:absolute;
+    inset: 4px;
+    border-radius: 2px;
+    background: rgba(52,226,122,0.30);
+    box-shadow: 0 0 14px 3px rgba(52,226,122,0.7), inset 0 0 8px rgba(52,226,122,0.5);
+  }
   @keyframes targetGlow{
     0%, 100% { opacity: 0.75; }
     50% { opacity: 1; }
@@ -147,16 +221,25 @@
   }
   .token svg{ width:100%; height:100%; }
 
+  .enemy{
+    width:106%; height:106%;
+    z-index: 2;
+    display:flex; align-items:center; justify-content:center;
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.6));
+  }
+  .enemy svg{ width:100%; height:100%; }
+
   /* Cards */
   .cards-row{
     display:flex;
     justify-content:center;
-    gap: 20px;
+    gap: 16px;
     margin: 24px 0 4px;
+    flex-wrap: wrap;
   }
   .card{
-    width: 88px;
-    height: 122px;
+    width: 82px;
+    height: 114px;
     background: linear-gradient(160deg, #241F17, #14110C);
     border-radius: 8px;
     position: relative;
@@ -185,10 +268,10 @@
   .card .pip.tl{ top:7px; left:8px; }
   .card .pip.br{ bottom:7px; right:8px; transform: rotate(180deg); }
   .card .glyph{
-    font-size: 42px;
+    font-size: 38px;
     color: var(--brass-bright);
     text-align:center;
-    margin-top: 14px;
+    margin-top: 13px;
   }
   .card .name{
     text-align:center;
@@ -223,31 +306,50 @@
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Two-Card Chess</h1>
-    <div class="subtitle">5 × 5 · reach the flag</div>
-  </header>
 
-  <div class="statbar">
-    <div class="stat"><span class="n" id="statSolved">0</span><span class="l">Solved</span></div>
-    <div class="stat"><span class="n" id="statStreak">0</span><span class="l">Streak</span></div>
-    <div class="stat"><span class="n" id="statBest">0</span><span class="l">Best</span></div>
+  <div class="menu-screen" id="menuScreen">
+    <div class="menu-title">Two-Card Chess</div>
+    <div class="menu-subtitle">5 × 5 practice board</div>
+    <div class="mode-btn" id="btnNormalMode">
+      <div class="mtitle">Normal Mode</div>
+      <div class="mdesc">Draw 2 cards from the deck and play both to land exactly on the flag.</div>
+    </div>
+    <div class="mode-btn hard" id="btnHardMode">
+      <div class="mtitle">Hard Mode</div>
+      <div class="mdesc">Draw 3 cards and play all of them to visit both flags — in any order.</div>
+    </div>
   </div>
 
-  <div class="table">
-    <div class="board-area">
-      <div class="board" id="board"></div>
+  <div id="gameScreen" class="hidden">
+    <header>
+      <a class="menu-link" id="btnBackToMenu">← Menu</a>
+      <h1>Two-Card Chess</h1>
+      <div class="subtitle" id="modeSubtitle">5 × 5 · reach the flag</div>
+    </header>
+
+    <div class="statbar">
+      <div class="stat"><span class="n" id="statSolved">0</span><span class="l">Solved</span></div>
+      <div class="stat"><span class="n" id="statStreak">0</span><span class="l">Streak</span></div>
+      <div class="stat"><span class="n" id="statBest">0</span><span class="l">Best</span></div>
     </div>
 
-    <div class="cards-row" id="cardsRow"></div>
+    <div class="table">
+      <div class="board-area">
+        <div class="board" id="board"></div>
+      </div>
 
-    <div class="message" id="message"></div>
+      <div class="cards-row" id="cardsRow"></div>
+
+      <div class="message" id="message"></div>
+    </div>
+
+    <div class="legend" id="legend">
+      <b>♔</b> King · <b>♕</b> Queen · <b>♖</b> Rook · <b>♗</b> Bishop · <b>♘</b> Knight · <b>♙</b> Pawn (always moves up)<br>
+      Play both drawn cards, in any order, to land exactly on the flag.<br>
+      Sometimes a wolf appears — your pawn can only step diagonally by capturing it.
+    </div>
   </div>
 
-  <div class="legend">
-    <b>♔</b> King · <b>♖</b> Rook · <b>♗</b> Bishop · <b>♘</b> Knight · <b>♙</b> Pawn (always moves up)<br>
-    Play both drawn cards, in any order, to land exactly on the flag.
-  </div>
 </div>
 
 <script>
@@ -295,27 +397,54 @@
     }
     return out;
   }
-  function pawnMoves(pos){
-    const r=pos.row-1, c=pos.col;
-    return inBounds(r,c) ? [{row:r,col:c}] : [];
+  function queenMoves(pos){
+    return [...rookMoves(pos), ...bishopMoves(pos)];
   }
-  function getMoves(type,pos){
+  function pawnMoves(pos, enemyPos){
+    const out=[];
+    const straight = {row: pos.row-1, col: pos.col};
+    if(inBounds(straight.row, straight.col)){
+      if(!(enemyPos && sameSquare(straight, enemyPos))) out.push(straight);
+    }
+    for(const dc of [-1,1]){
+      const diag = {row: pos.row-1, col: pos.col+dc};
+      if(inBounds(diag.row,diag.col) && enemyPos && sameSquare(diag, enemyPos)) out.push(diag);
+    }
+    return out;
+  }
+  function getMoves(type,pos,enemyPos){
     switch(type){
       case 'K': return kingMoves(pos);
+      case 'Q': return queenMoves(pos);
       case 'R': return rookMoves(pos);
       case 'B': return bishopMoves(pos);
       case 'N': return knightMoves(pos);
-      case 'P': return pawnMoves(pos);
+      case 'P': return pawnMoves(pos, enemyPos);
     }
   }
-  const NAME = {K:'King', R:'Rook', B:'Bishop', N:'Knight', P:'Pawn'};
-  const GLYPH = {K:'♔', R:'♖', B:'♗', N:'♘', P:'♙'};
+  const NAME = {K:'King', Q:'Queen', R:'Rook', B:'Bishop', N:'Knight', P:'Pawn'};
+  const GLYPH = {K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙'};
 
-  function solve(start,target,cardA,cardB){
+  function fullDeck(){ return ['K','R','R','B','B','N','N','P','P','P','Q','Q']; }
+
+  function drawCards(deck,discard,n){
+    let workingDeck=[...deck], workingDiscard=[...discard];
+    if(workingDeck.length<n){
+      workingDeck = shuffle([...workingDeck,...workingDiscard]);
+      workingDiscard=[];
+    }
+    const drawn = workingDeck.slice(0,n);
+    const remaining = workingDeck.slice(n);
+    const newDiscard = [...workingDiscard, ...drawn];
+    return {drawn, deck:remaining, discard:newDiscard};
+  }
+
+  // ================= NORMAL MODE (2 cards, 1 target) =================
+  function solve2(start,target,cardA,cardB,enemyPos){
     const orders = [[cardA,cardB],[cardB,cardA]];
     for(const order of orders){
-      for(const mid of getMoves(order[0],start)){
-        if(getMoves(order[1],mid).some(m=>sameSquare(m,target))){
+      for(const mid of getMoves(order[0],start,enemyPos)){
+        if(getMoves(order[1],mid,enemyPos).some(m=>sameSquare(m,target))){
           return {order, mid};
         }
       }
@@ -323,35 +452,185 @@
     return null;
   }
 
-  function fullDeck(){ return ['K','R','R','B','B','N','N','P','P','P','P','P']; }
+  const TWIST_CHANCE = 0.3; // fraction of pawn-containing draws that try for a necessary-capture puzzle
 
-  function generatePuzzle(deck,discard){
+  function findNormalPuzzle(cardA,cardB){
+    const squares = shuffle(allSquares());
+    for(const t of squares){
+      const starts = allSquares().filter(s=>
+        !sameSquare(s,t) &&
+        solve2(s,t,cardA,cardB,null)!==null &&
+        !getMoves(cardA,s,null).some(m=>sameSquare(m,t)) &&
+        !getMoves(cardB,s,null).some(m=>sameSquare(m,t))
+      );
+      if(starts.length>0){
+        const start = starts[Math.floor(Math.random()*starts.length)];
+        return {target:t, start, enemyPos:null};
+      }
+    }
+    return null;
+  }
+
+  // Finds a start/target/enemy placement where the puzzle is UNSOLVABLE without the
+  // pawn's diagonal capture, and solvable once the capture is available — so the
+  // capture is provably required, not just an optional shortcut.
+  function findTwistPuzzle(cardA,cardB){
+    const targets = shuffle(allSquares());
+    for(const t of targets){
+      const enemyCandidates = shuffle(allSquares().filter(e=>e.row<=3));
+      for(const e of enemyCandidates){
+        const starts = shuffle(allSquares());
+        for(const s of starts){
+          if(sameSquare(s,t) || sameSquare(s,e)) continue;
+          if(solve2(s,t,cardA,cardB,null)!==null) continue; // must be impossible without the capture
+          if(solve2(s,t,cardA,cardB,e)===null) continue;    // must be possible with it
+          if(getMoves(cardA,s,e).some(m=>sameSquare(m,t))) continue;
+          if(getMoves(cardB,s,e).some(m=>sameSquare(m,t))) continue;
+          return {target:t, start:s, enemyPos:e};
+        }
+      }
+    }
+    return null;
+  }
+
+  function generateNormalPuzzle(deck,discard){
     let workingDeck=[...deck], workingDiscard=[...discard];
     let attempts=0, result=null;
     while(attempts<40 && !result){
-      if(workingDeck.length<2){
-        workingDeck = shuffle([...workingDeck,...workingDiscard]);
-        workingDiscard=[];
+      const draw = drawCards(workingDeck,workingDiscard,2);
+      const [cardA,cardB] = draw.drawn;
+
+      const hasPawn = cardA==='P' || cardB==='P';
+      const bothPawns = cardA==='P' && cardB==='P';
+      let found = null;
+      if(!bothPawns){
+        if(hasPawn && Math.random()<TWIST_CHANCE){
+          found = findTwistPuzzle(cardA,cardB);
+        }
+        if(!found){
+          found = findNormalPuzzle(cardA,cardB);
+        }
       }
-      const cardA=workingDeck[0], cardB=workingDeck[1];
-      const remaining=workingDeck.slice(2);
-      const newDiscard=[...workingDiscard,cardA,cardB];
-      const squares=shuffle(allSquares());
-      let found=null;
-      for(const t of squares){
-        const starts = allSquares().filter(s=>
-          !sameSquare(s,t) &&
-          solve(s,t,cardA,cardB)!==null &&
-          !getMoves(cardA,s).some(m=>sameSquare(m,t)) &&
-          !getMoves(cardB,s).some(m=>sameSquare(m,t))
-        );
-        if(starts.length>0){ found={target:t,starts}; break; }
+
+      if(found){
+        result = {
+          cards: [cardA,cardB],
+          targets: [found.target],
+          start: found.start,
+          enemyPos: found.enemyPos,
+          deck: draw.deck, discard: draw.discard
+        };
+      } else {
+        workingDeck = draw.deck; workingDiscard = draw.discard; attempts++;
+      }
+    }
+    return result;
+  }
+
+  // ================= HARD MODE (3 cards, 2 targets) =================
+  function permutations3(arr){
+    const [a,b,c]=arr;
+    return [[a,b,c],[a,c,b],[b,a,c],[b,c,a],[c,a,b],[c,b,a]];
+  }
+  function targetIndexAt(sq,targets){
+    for(let i=0;i<targets.length;i++) if(sameSquare(sq,targets[i])) return i;
+    return -1;
+  }
+  function solveHard(start,targets,cards,enemyPos){
+    for(const order of permutations3(cards)){
+      for(const p1 of getMoves(order[0],start,enemyPos)){
+        const i1=targetIndexAt(p1,targets);
+        for(const p2 of getMoves(order[1],p1,enemyPos)){
+          const i2=targetIndexAt(p2,targets);
+          for(const p3 of getMoves(order[2],p2,enemyPos)){
+            const i3=targetIndexAt(p3,targets);
+            const hits = new Set([i1,i2,i3].filter(i=>i>=0));
+            if(hits.has(0) && hits.has(1)) return {order, path:[p1,p2,p3]};
+          }
+        }
+      }
+    }
+    return null;
+  }
+  function twoCardSubsetSolves(start,targets,cardX,cardY,enemyPos){
+    const orders=[[cardX,cardY],[cardY,cardX]];
+    for(const order of orders){
+      for(const p1 of getMoves(order[0],start,enemyPos)){
+        const i1=targetIndexAt(p1,targets);
+        for(const p2 of getMoves(order[1],p1,enemyPos)){
+          const i2=targetIndexAt(p2,targets);
+          const hits=new Set([i1,i2].filter(i=>i>=0));
+          if(hits.has(0)&&hits.has(1)) return true;
+        }
+      }
+    }
+    return false;
+  }
+  // Requires that no 2 of the 3 cards could already solve it alone — so all three
+  // are genuinely necessary, not just the third one along for the ride.
+  function threeCardNecessary(start,targets,cards,enemyPos){
+    const pairs=[[cards[0],cards[1]],[cards[0],cards[2]],[cards[1],cards[2]]];
+    return pairs.every(([x,y])=>!twoCardSubsetSolves(start,targets,x,y,enemyPos));
+  }
+  function findHardPuzzle(cards){
+    const starts = shuffle(allSquares());
+    const squares = allSquares();
+    const pairs=[];
+    for(let i=0;i<squares.length;i++) for(let j=i+1;j<squares.length;j++) pairs.push([squares[i],squares[j]]);
+    const shuffledPairs = shuffle(pairs);
+    for(const [tA,tB] of shuffledPairs){
+      for(const start of starts){
+        if(sameSquare(start,tA)||sameSquare(start,tB)) continue;
+        const targets=[tA,tB];
+        if(!threeCardNecessary(start,targets,cards,null)) continue;
+        if(!solveHard(start,targets,cards,null)) continue;
+        return {start,targets,enemyPos:null};
+      }
+    }
+    return null;
+  }
+  // Same idea as the normal-mode twist: only offered when the puzzle is provably
+  // unsolvable without the pawn's diagonal capture, and solvable once it's available,
+  // and still genuinely requires all three cards even with the capture available.
+  function findHardTwistPuzzle(cards){
+    const squares = allSquares();
+    const pairs=[];
+    for(let i=0;i<squares.length;i++) for(let j=i+1;j<squares.length;j++) pairs.push([squares[i],squares[j]]);
+    const shuffledPairs = shuffle(pairs);
+    const enemyCandidates = shuffle(squares.filter(e=>e.row<=3));
+    const starts = shuffle(squares);
+    for(const [tA,tB] of shuffledPairs){
+      const targets=[tA,tB];
+      for(const e of enemyCandidates){
+        for(const s of starts){
+          if(sameSquare(s,tA)||sameSquare(s,tB)||sameSquare(s,e)) continue;
+          if(solveHard(s,targets,cards,null)) continue;       // must be unsolvable without capture
+          if(!solveHard(s,targets,cards,e)) continue;          // must be solvable with capture
+          if(!threeCardNecessary(s,targets,cards,e)) continue; // still need all 3 cards
+          return {start:s,targets,enemyPos:e};
+        }
+      }
+    }
+    return null;
+  }
+  function generateHardPuzzle(deck,discard){
+    let workingDeck=[...deck], workingDiscard=[...discard];
+    let attempts=0, result=null;
+    while(attempts<25 && !result){
+      const draw = drawCards(workingDeck,workingDiscard,3);
+      const cards = draw.drawn;
+      const hasPawn = cards.includes('P');
+      let found = null;
+      if(hasPawn && Math.random()<TWIST_CHANCE){
+        found = findHardTwistPuzzle(cards);
+      }
+      if(!found){
+        found = findHardPuzzle(cards);
       }
       if(found){
-        const start = found.starts[Math.floor(Math.random()*found.starts.length)];
-        result = {cardA,cardB,target:found.target,start,deck:remaining,discard:newDiscard};
+        result = { cards, targets: found.targets, start: found.start, enemyPos: found.enemyPos, deck: draw.deck, discard: draw.discard };
       } else {
-        workingDeck=remaining; workingDiscard=newDiscard; attempts++;
+        workingDeck = draw.deck; workingDiscard = draw.discard; attempts++;
       }
     }
     return result;
@@ -387,15 +666,47 @@
             fill="none" stroke="#C9A227" stroke-width="1"/>
     </svg>`;
 
+  // ---------- enemy icon (stylized wolf, waits for the lamb) ----------
+  const WOLF_SVG = `
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="furGrad" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#F5F3EC"/>
+          <stop offset="100%" stop-color="#C6C2B4"/>
+        </radialGradient>
+      </defs>
+      <!-- ears -->
+      <path d="M30 34 L18 10 L38 28 Z" fill="#DCD8CA"/>
+      <path d="M70 34 L82 10 L62 28 Z" fill="#DCD8CA"/>
+      <!-- head -->
+      <ellipse cx="50" cy="52" rx="25" ry="22" fill="url(#furGrad)"/>
+      <!-- snout -->
+      <path d="M38 58 Q50 74 62 58 Q56 66 50 66 Q44 66 38 58 Z" fill="#4A4740"/>
+      <!-- eyes -->
+      <circle cx="41" cy="49" r="3.2" fill="#FF4D5E"/>
+      <circle cx="59" cy="49" r="3.2" fill="#FF4D5E"/>
+      <circle cx="41" cy="49" r="1.1" fill="#3a1010"/>
+      <circle cx="59" cy="49" r="1.1" fill="#3a1010"/>
+      <!-- fangs -->
+      <path d="M44 62 L46 68 L48 62 Z" fill="#FFFFFF"/>
+      <path d="M56 62 L54 68 L52 62 Z" fill="#FFFFFF"/>
+    </svg>`;
+
   // ---------- state ----------
   let state = {
+    mode: null, // 'normal' | 'hard'
     deck: shuffle(fullDeck()),
     discard: [],
-    target: null, start: null, token: null,
-    cardA: null, cardB: null, usedA: false, usedB: false,
-    selected: null,
+    start: null, token: null, enemyPos: null,
+    targets: [],   // array of {row,col}
+    hits: [],      // parallel array of booleans
+    cards: [],     // array of {type, used}
+    selectedIndex: null,
     phase: 'playing', // playing | resolved (auto-advancing)
-    stats: { solved:0, streak:0, best:0 }
+    stats: {
+      normal: { solved:0, streak:0, best:0 },
+      hard:   { solved:0, streak:0, best:0 }
+    }
   };
 
   const STORE_KEY = 'stats';
@@ -405,25 +716,37 @@
       const res = await window.storage.get(STORE_KEY, false);
       if(res && res.value){
         const parsed = JSON.parse(res.value);
-        state.stats = Object.assign(state.stats, parsed);
+        if(parsed.normal) Object.assign(state.stats.normal, parsed.normal);
+        if(parsed.hard) Object.assign(state.stats.hard, parsed.hard);
       }
     }catch(e){ /* no saved stats yet, or storage unavailable — start fresh */ }
-    renderStats();
   }
   async function saveStats(){
     try{ await window.storage.set(STORE_KEY, JSON.stringify(state.stats), false); }
     catch(e){ /* best effort */ }
   }
 
+  function currentStats(){ return state.stats[state.mode]; }
+
   function newPuzzle(){
-    const p = generatePuzzle(state.deck, state.discard);
+    const p = state.mode==='hard'
+      ? generateHardPuzzle(state.deck, state.discard)
+      : generateNormalPuzzle(state.deck, state.discard);
+
     state.deck = p.deck; state.discard = p.discard;
-    state.target = p.target; state.start = p.start; state.token = p.start;
-    state.cardA = p.cardA; state.cardB = p.cardB;
-    state.usedA = false; state.usedB = false;
-    state.selected = null;
+    state.start = p.start; state.token = p.start; state.enemyPos = p.enemyPos;
+    state.targets = p.targets;
+    state.hits = p.targets.map(()=>false);
+    state.cards = p.cards.map(type=>({type, used:false}));
+    state.selectedIndex = null;
     state.phase = 'playing';
-    setMessage('Choose a card, then tap a lit square to move.', '');
+
+    setMessage(
+      state.mode==='hard'
+        ? 'Choose a card, then tap a lit square. Visit both flags to win.'
+        : 'Choose a card, then tap a lit square to move.',
+      ''
+    );
     render();
   }
 
@@ -434,63 +757,68 @@
   }
 
   function currentSelectedType(){
-    if(state.selected==='A') return state.cardA;
-    if(state.selected==='B') return state.cardB;
-    return null;
+    return state.selectedIndex!=null ? state.cards[state.selectedIndex].type : null;
   }
 
-  function selectCard(which){
+  function selectCard(index){
     if(state.phase!=='playing') return;
-    if(which==='A' && state.usedA) return;
-    if(which==='B' && state.usedB) return;
-    state.selected = state.selected===which ? null : which;
+    if(state.cards[index].used) return;
+    state.selectedIndex = state.selectedIndex===index ? null : index;
     render();
   }
 
   function playMove(row,col){
-    if(state.phase!=='playing' || !state.selected) return;
+    if(state.phase!=='playing' || state.selectedIndex==null) return;
     const type = currentSelectedType();
-    const legal = getMoves(type, state.token);
+    const legal = getMoves(type, state.token, state.enemyPos);
     if(!legal.some(m=>m.row===row && m.col===col)) return;
 
     state.token = {row,col};
-    if(state.selected==='A') state.usedA = true; else state.usedB = true;
-    state.selected = null;
+    state.cards[state.selectedIndex].used = true;
+    state.selectedIndex = null;
 
-    if(state.usedA && state.usedB){
-      const success = sameSquare(state.token, state.target);
+    state.targets.forEach((t,i)=>{
+      if(!state.hits[i] && sameSquare(state.token,t)) state.hits[i]=true;
+    });
+
+    const allUsed = state.cards.every(c=>c.used);
+    if(allUsed){
+      const success = state.hits.every(h=>h);
       state.phase = 'resolved';
+      const stats = currentStats();
       if(success){
-        state.stats.solved += 1;
-        state.stats.streak += 1;
-        state.stats.best = Math.max(state.stats.best, state.stats.streak);
+        stats.solved += 1;
+        stats.streak += 1;
+        stats.best = Math.max(stats.best, stats.streak);
         setMessage('Solved!', 'solved');
       } else {
-        state.stats.streak = 0;
-        setMessage('Missed the flag.', 'failed');
+        stats.streak = 0;
+        setMessage(state.mode==='hard' ? 'Missed a flag.' : 'Missed the flag.', 'failed');
       }
       saveStats();
       render(success ? 'success' : 'fail');
       setTimeout(newPuzzle, 120);
     } else {
-      setMessage('Played ' + NAME[type] + '. Now play your other card.', '');
+      const left = state.cards.filter(c=>!c.used).length;
+      setMessage('Played ' + NAME[type] + '. ' + left + ' card' + (left===1?'':'s') + ' left.', '');
       render();
     }
   }
 
   // ---------- render ----------
   function renderStats(){
-    document.getElementById('statSolved').textContent = state.stats.solved;
-    document.getElementById('statStreak').textContent = state.stats.streak;
-    document.getElementById('statBest').textContent = state.stats.best;
+    const s = currentStats();
+    document.getElementById('statSolved').textContent = s.solved;
+    document.getElementById('statStreak').textContent = s.streak;
+    document.getElementById('statBest').textContent = s.best;
   }
 
   function renderBoard(flashKind){
     const board = document.getElementById('board');
     board.innerHTML = '';
 
-    const legalMoves = (state.phase==='playing' && state.selected)
-      ? getMoves(currentSelectedType(), state.token)
+    const legalMoves = (state.phase==='playing' && state.selectedIndex!=null)
+      ? getMoves(currentSelectedType(), state.token, state.enemyPos)
       : [];
 
     for(let r=0;r<5;r++){
@@ -499,16 +827,17 @@
         const isLight = (r+c)%2===0;
         cell.className = 'cell ' + (isLight?'light':'dark');
 
-        const isTarget = state.target && state.target.row===r && state.target.col===c;
+        const targetIdx = state.targets.findIndex(t=>t.row===r && t.col===c);
         const isToken = state.token && state.token.row===r && state.token.col===c;
+        const isEnemy = state.enemyPos && state.enemyPos.row===r && state.enemyPos.col===c;
         const isLegal = legalMoves.some(m=>m.row===r && m.col===c);
 
         if(isLegal){
           cell.className += ' legal';
           cell.addEventListener('click', ()=>playMove(r,c));
         }
-        if(isTarget && state.phase==='playing'){
-          cell.className += ' is-target';
+        if(targetIdx>=0 && state.phase==='playing'){
+          cell.className += state.hits[targetIdx] ? ' is-target-hit' : ' is-target';
         }
         if(isToken && flashKind){
           cell.className += flashKind==='success' ? ' flash-success' : ' flash-fail';
@@ -518,6 +847,11 @@
           tok.className = 'token';
           tok.innerHTML = LAMB_SVG;
           cell.appendChild(tok);
+        } else if(isEnemy){
+          const wolf = document.createElement('div');
+          wolf.className = 'enemy';
+          wolf.innerHTML = WOLF_SVG;
+          cell.appendChild(wolf);
         }
 
         board.appendChild(cell);
@@ -528,16 +862,17 @@
   function renderCards(){
     const row = document.getElementById('cardsRow');
     row.innerHTML = '';
-    [['A', state.cardA, state.usedA], ['B', state.cardB, state.usedB]].forEach(([key, type, used])=>{
+    state.cards.forEach((cardState, index)=>{
+      const { type, used } = cardState;
       const card = document.createElement('div');
-      card.className = 'card' + (used ? ' used' : '') + (state.selected===key ? ' selected' : '') + (state.phase!=='playing' ? ' disabled' : '');
+      card.className = 'card' + (used ? ' used' : '') + (state.selectedIndex===index ? ' selected' : '') + (state.phase!=='playing' ? ' disabled' : '');
       card.innerHTML =
         '<div class="pip tl">'+GLYPH[type]+'</div>' +
         '<div class="pip br">'+GLYPH[type]+'</div>' +
         '<div class="glyph">'+GLYPH[type]+'</div>' +
         '<div class="name">'+NAME[type]+'</div>';
       if(!used && state.phase==='playing'){
-        card.addEventListener('click', ()=>selectCard(key));
+        card.addEventListener('click', ()=>selectCard(index));
       }
       row.appendChild(card);
     });
@@ -549,9 +884,38 @@
     renderStats();
   }
 
-  loadStats().then(()=>{
+  // ---------- menu / mode switching ----------
+  function updateModeChrome(){
+    document.getElementById('modeSubtitle').textContent =
+      state.mode==='hard' ? '5 × 5 · reach both flags' : '5 × 5 · reach the flag';
+    document.getElementById('legend').innerHTML = state.mode==='hard'
+      ? '<b>♔</b> King · <b>♕</b> Queen · <b>♖</b> Rook · <b>♗</b> Bishop · <b>♘</b> Knight · <b>♙</b> Pawn (always moves up)<br>' +
+        'Play all three drawn cards, in any order, to visit both flags at some point along the way.<br>' +
+        'Sometimes a wolf appears — your pawn can only step diagonally by capturing it.'
+      : '<b>♔</b> King · <b>♕</b> Queen · <b>♖</b> Rook · <b>♗</b> Bishop · <b>♘</b> Knight · <b>♙</b> Pawn (always moves up)<br>' +
+        'Play both drawn cards, in any order, to land exactly on the flag.<br>' +
+        'Sometimes a wolf appears — your pawn can only step diagonally by capturing it.';
+  }
+
+  function startMode(mode){
+    state.mode = mode;
+    document.getElementById('menuScreen').classList.add('hidden');
+    document.getElementById('gameScreen').classList.remove('hidden');
+    updateModeChrome();
     newPuzzle();
-  });
+  }
+
+  function backToMenu(){
+    document.getElementById('gameScreen').classList.add('hidden');
+    document.getElementById('menuScreen').classList.remove('hidden');
+    state.mode = null;
+  }
+
+  document.getElementById('btnNormalMode').addEventListener('click', ()=>startMode('normal'));
+  document.getElementById('btnHardMode').addEventListener('click', ()=>startMode('hard'));
+  document.getElementById('btnBackToMenu').addEventListener('click', backToMenu);
+
+  loadStats();
 })();
 </script>
 </body>
